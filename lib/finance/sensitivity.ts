@@ -3,22 +3,8 @@
  * Matrice: variation d'une variable → impact cashflow / DSCR
  */
 
-import type { PropertyInput, SensitivityMatrix } from "./types";
+import type { PropertyInput, SensitivityResult } from "./types";
 import { calculateCashflow } from "./cashflow";
-
-export interface SensitivityResult {
-  variable: string;
-  label: string;
-  baseValue: number;
-  deltas: number[];
-  scenarios: Array<{
-    delta: number;
-    value: number;
-    cashflowMonthly: number;
-    dscr: number;
-    capRate: number;
-  }>;
-}
 
 export function sensitivityAnalysis(
   baseInput: PropertyInput

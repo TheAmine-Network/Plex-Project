@@ -157,12 +157,18 @@ export interface IRRResult {
   cashflows: number[];           // flux année 0 = mise de fonds (négatif)
 }
 
-export interface SensitivityMatrix {
-  variable: "interestRate" | "vacancyRate" | "rentGrowth" | "maintenance";
+export interface SensitivityResult {
+  variable: string;
+  label: string;
   baseValue: number;
-  deltas: number[];              // ex: [-0.02, -0.01, 0, +0.01, +0.02]
-  cashflowImpact: number[];
-  dscrImpact: number[];
+  deltas: number[];
+  scenarios: Array<{
+    delta: number;
+    value: number;
+    cashflowMonthly: number;
+    dscr: number;
+    capRate: number;
+  }>;
 }
 
 export interface DealScore {
@@ -193,7 +199,7 @@ export interface FullAnalysis {
   projections: ProjectionYear[];
   irr5y: IRRResult;
   irr10y: IRRResult;
-  sensitivity: SensitivityMatrix[];
+  sensitivity: SensitivityResult[];
   score: DealScore;
   assumptions: AssumptionInput;
   computedAt: string;            // ISO timestamp
