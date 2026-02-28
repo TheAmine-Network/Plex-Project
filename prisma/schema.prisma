@@ -1,0 +1,318 @@
+// PlexIQ — Prisma Schema
+// DB: PostgreSQL via Supabase
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+// ─── USERS ──────────────────────────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  supabaseId String  @unique @map("supabase_id")
+  email     String   @unique
+  name      String?
+  avatarUrl String?  @map("avatar_url")
+  plan      Plan     @default(FREE)
+  stripeCustomerId String? @unique @map("stripe_customer_id")
+  stripeSubscriptionId String? @unique @map("stripe_subscription_id")
+  subscriptionStatus SubscriptionStatus @default(INACTIVE)
+  analysisCount Int  @default(0) @map("analysis_count")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  properties  Property[]
+  analyses    Analysis[]
+  comparisons Comparison[]
+  exports     Export[]
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+enum Plan {
+  FREE
+  PRO
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+// ─── PROPERTIES ─────────────────────────────────────────────────────────────
+model Property {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  slug        String   @unique @default(cuid())
+
+  // Identité
+  name        String
+  address     String
+  city        String
+  province    String   @default("QC")
+  postalCode  String?  @map("postal_code")
+  propertyType PropertyType @default(DUPLEX)
+  yearBuilt   Int?     @map("year_built")
+  totalUnits  Int      @default(2) @map("total_units")
+  totalArea   Float?   @map("total_area") // pi²
+
+  // Financier
+  askingPrice Float    @map("asking_price")
+  purchasePrice Float? @map("purchase_price") // prix négocié final
+
+  // Descriptif
+  notes       String?
+  sourceUrl   String?  @map("source_url") // URL Centris optionnelle
+  isFavorite  Boolean  @default(false) @map("is_favorite")
+  isArchived  Boolean  @default(false) @map("is_archived")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  units       PropertyUnit[]
+  assumptions Assumption[]
+  mortgages   Mortgage[]
+  analyses    Analysis[]
+
+  @@index([userId])
+  @@index([isFavorite])
+  @@map("properties")
+}
+
+enum PropertyType {
+  DUPLEX
+  TRIPLEX
+  QUADRUPLEX
+  FIVE_UNITS
+  SIX_UNITS
+}
+
+// ─── PROPERTY UNITS ─────────────────────────────────────────────────────────
+model PropertyUnit {
+  id          String   @id @default(cuid())
+  propertyId  String   @map("property_id")
+
+  unitLabel   String   @map("unit_label") // "Logement 1", "Rez-de-chaussée", etc.
+  bedrooms    Int?
+  bathrooms   Float?
+  area        Float?   // pi²
+
+  // Revenus
+  monthlyRent Float?   @map("monthly_rent")    // loyer actuel
+  marketRent  Float?   @map("market_rent")     // loyer marché estimé
+  isVacant    Boolean  @default(false) @map("is_vacant")
+  isOwnerOccupied Boolean @default(false) @map("is_owner_occupied")
+
+  // Utilitaires (qui paie)
+  heatingIncluded Boolean @default(false) @map("heating_included")
+  hotWaterIncluded Boolean @default(false) @map("hot_water_included")
+  electricityIncluded Boolean @default(false) @map("electricity_included")
+
+  leaseEndDate DateTime? @map("lease_end_date")
+  notes        String?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_units")
+}
+
+// ─── ASSUMPTIONS ────────────────────────────────────────────────────────────
+model Assumption {
+  id          String   @id @default(cuid())
+  propertyId  String   @map("property_id")
+  version     Int      @default(1) // pour reproductibilité
+
+  // Revenus
+  vacancyRate         Float @default(0.05)  @map("vacancy_rate")        // 5%
+  annualRentIncrease  Float @default(0.03)  @map("annual_rent_increase") // 3%
+
+  // Dépenses annuelles
+  municipalTaxes      Float @default(0)     @map("municipal_taxes")
+  schoolTaxes         Float @default(0)     @map("school_taxes")
+  insurance           Float @default(0)
+  maintenanceRate     Float @default(0.02)  @map("maintenance_rate")    // % prix achat
+  maintenanceOverride Float? @map("maintenance_override")               // montant fixe si fourni
+  snowRemoval         Float @default(0)     @map("snow_removal")
+  landscaping         Float @default(0)
+  water               Float @default(0)
+  electricity         Float @default(0)     // parties communes
+  heating             Float @default(0)     // si proprio paie
+  management          Float @default(0)     @map("management")          // $ ou %
+  managementIsPercent Boolean @default(false) @map("management_is_percent")
+  reserveFund         Float @default(0.03)  @map("reserve_fund")        // % revenu brut
+  otherExpenses       Float @default(0)     @map("other_expenses")
+
+  // Projections
+  inflationRate       Float @default(0.02)  @map("inflation_rate")
+  exitCapRate         Float @default(0.055) @map("exit_cap_rate")
+  projectionYears     Int   @default(10)    @map("projection_years")
+
+  // Acquisition
+  closingCosts        Float @default(0.015) @map("closing_costs")       // % prix achat
+  renovationBudget    Float @default(0)     @map("renovation_budget")
+  transferTax         Float? @map("transfer_tax")                        // calculé si nul
+
+  // Méta
+  isDefault           Boolean @default(false) @map("is_default")
+  label               String? // "Scénario conservateur"
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  analyses    Analysis[]
+
+  @@index([propertyId])
+  @@map("assumptions")
+}
+
+// ─── MORTGAGES ──────────────────────────────────────────────────────────────
+model Mortgage {
+  id          String   @id @default(cuid())
+  propertyId  String   @map("property_id")
+
+  loanAmount  Float    @map("loan_amount")
+  interestRate Float   @map("interest_rate")   // annuel, ex: 0.0549
+  amortizationYears Int @default(25)            @map("amortization_years")
+  termYears   Int      @default(5)              @map("term_years")
+  paymentFrequency PaymentFrequency @default(MONTHLY) @map("payment_frequency")
+  isVariable  Boolean  @default(false)          @map("is_variable")
+  mortgageInsurance Float @default(0)           @map("mortgage_insurance") // SCHL si <20%
+
+  label       String?  // "Hypothèque principale"
+  isActive    Boolean  @default(true)           @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  analyses    Analysis[]
+
+  @@index([propertyId])
+  @@map("mortgages")
+}
+
+enum PaymentFrequency {
+  MONTHLY
+  SEMI_MONTHLY
+  BIWEEKLY
+  WEEKLY
+  ACCELERATED_BIWEEKLY
+  ACCELERATED_WEEKLY
+}
+
+// ─── ANALYSES ────────────────────────────────────────────────────────────────
+model Analysis {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  propertyId   String   @map("property_id")
+  assumptionId String   @map("assumption_id")
+  mortgageId   String   @map("mortgage_id")
+
+  // Snapshot des résultats (JSON — pour reproductibilité)
+  results      Json     // AnalysisResults type
+  inputSnapshot Json    @map("input_snapshot") // copie des inputs au moment du calcul
+
+  // KPIs de surface (pour listing rapide)
+  cashflowMonthly     Float  @map("cashflow_monthly")
+  cashflowAnnual      Float  @map("cashflow_annual")
+  capRate             Float  @map("cap_rate")
+  grm                 Float
+  dscr                Float
+  noi                 Float
+  irr5y               Float? @map("irr_5y")
+  irr10y              Float? @map("irr_10y")
+  dealScore           Int    @map("deal_score")   // 0–100
+  dealVerdict         DealVerdict @map("deal_verdict")
+
+  label       String?
+  notes       String?
+  version     Int      @default(1)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  assumption  Assumption @relation(fields: [assumptionId], references: [id])
+  mortgage    Mortgage  @relation(fields: [mortgageId], references: [id])
+  exports     Export[]
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([dealVerdict])
+  @@map("analyses")
+}
+
+enum DealVerdict {
+  GO
+  NEUTRAL
+  NO_GO
+}
+
+// ─── COMPARISONS ─────────────────────────────────────────────────────────────
+model Comparison {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  label       String
+  analysisIds String[] @map("analysis_ids")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("comparisons")
+}
+
+// ─── EXPORTS ─────────────────────────────────────────────────────────────────
+model Export {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  analysisId  String   @map("analysis_id")
+  format      ExportFormat @default(PDF)
+  url         String?
+  isPaid      Boolean  @default(false) @map("is_paid")
+  stripePaymentIntentId String? @map("stripe_payment_intent_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysis    Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("exports")
+}
+
+enum ExportFormat {
+  PDF
+  CSV
+}
+
+// ─── AUDIT LOGS ──────────────────────────────────────────────────────────────
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  action    String
+  resource  String
+  resourceId String? @map("resource_id")
+  metadata  Json?
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
