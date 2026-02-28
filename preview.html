@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlexIQ — Aperçu Analyse</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f0f11; color: #e2e8f0; min-height: 100vh; padding: 24px; }
+
+    h1 { font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .subtitle { color: #64748b; font-size: 0.85rem; margin-bottom: 28px; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 28px; }
+    .card { background: #1a1a1f; border: 1px solid #2d2d35; border-radius: 10px; padding: 16px; }
+    .card-label { font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .card-value { font-size: 1.4rem; font-weight: 700; }
+    .card-sub { font-size: 0.78rem; color: #64748b; margin-top: 4px; }
+    .green { color: #22c55e; }
+    .red   { color: #ef4444; }
+    .yellow{ color: #eab308; }
+    .blue  { color: #3b82f6; }
+
+    .section { margin-bottom: 28px; }
+    .section-title { font-size: 0.9rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+
+    /* Score */
+    .score-wrap { display: flex; align-items: center; gap: 20px; background: #1a1a1f; border: 1px solid #2d2d35; border-radius: 10px; padding: 20px; }
+    .score-circle { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 800; flex-shrink: 0; }
+    .score-go { background: #14532d; color: #22c55e; border: 3px solid #22c55e; }
+    .score-neutral { background: #713f12; color: #eab308; border: 3px solid #eab308; }
+    .score-nogo { background: #7f1d1d; color: #ef4444; border: 3px solid #ef4444; }
+    .score-info h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .score-bars { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+    .bar-row { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #94a3b8; }
+    .bar-track { flex: 1; height: 5px; background: #2d2d35; border-radius: 3px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 3px; background: #3b82f6; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; background: #1a1a1f; border-radius: 10px; overflow: hidden; border: 1px solid #2d2d35; }
+    th { background: #12121a; color: #64748b; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 14px; text-align: right; }
+    th:first-child { text-align: left; }
+    td { padding: 9px 14px; font-size: 0.82rem; border-top: 1px solid #2d2d35; text-align: right; }
+    td:first-child { text-align: left; color: #94a3b8; }
+    tr:hover td { background: #1e1e28; }
+
+    /* Sensitivity */
+    .sens-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .sens-card { background: #1a1a1f; border: 1px solid #2d2d35; border-radius: 10px; padding: 16px; }
+    .sens-card h3 { font-size: 0.82rem; font-weight: 600; margin-bottom: 12px; color: #94a3b8; }
+    .sens-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 0.78rem; border-bottom: 1px solid #2d2d3520; }
+    .sens-row:last-child { border-bottom: none; }
+    .sens-delta { color: #64748b; width: 60px; }
+    .sens-cf { font-weight: 600; }
+    .sens-dscr { color: #64748b; font-size: 0.72rem; }
+    .sens-base { background: #1e2a3a; border-radius: 4px; padding: 2px 6px; }
+
+    .flag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; margin: 4px; }
+    .flag-warning { background: #713f1220; border: 1px solid #713f12; color: #eab308; }
+    .flag-danger  { background: #7f1d1d20; border: 1px solid #7f1d1d; color: #ef4444; }
+    .flag-info    { background: #1e3a5f20; border: 1px solid #1e3a5f; color: #3b82f6; }
+
+    .timestamp { color: #2d2d35; font-size: 0.7rem; text-align: right; margin-top: 24px; }
+  </style>
+</head>
+<body>
+
+<h1>PlexIQ — Analyse Financière</h1>
+<p class="subtitle">Immeuble 4 logements · 650 000 $ · Montréal</p>
+
+<!-- KPIs -->
+<div class="section">
+  <div class="section-title">Indicateurs clés</div>
+  <div class="grid">
+    <div class="card">
+      <div class="card-label">Cashflow mensuel</div>
+      <div class="card-value green">+342 $</div>
+      <div class="card-sub">après dette</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Cap Rate</div>
+      <div class="card-value blue">5.42 %</div>
+      <div class="card-sub">NOI / prix</div>
+    </div>
+    <div class="card">
+      <div class="card-label">DSCR</div>
+      <div class="card-value green">1.18</div>
+      <div class="card-sub">cible ≥ 1.20</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Cash-on-Cash</div>
+      <div class="card-value blue">3.8 %</div>
+      <div class="card-sub">sur mise de fonds</div>
+    </div>
+    <div class="card">
+      <div class="card-label">GRM</div>
+      <div class="card-value">11.2×</div>
+      <div class="card-sub">prix / revenu brut</div>
+    </div>
+    <div class="card">
+      <div class="card-label">IRR 5 ans</div>
+      <div class="card-value blue">9.4 %</div>
+      <div class="card-sub">incl. appréciation</div>
+    </div>
+    <div class="card">
+      <div class="card-label">IRR 10 ans</div>
+      <div class="card-value blue">11.2 %</div>
+      <div class="card-sub">incl. appréciation</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Mise de fonds totale</div>
+      <div class="card-value">108 400 $</div>
+      <div class="card-sub">20 % + frais</div>
+    </div>
+  </div>
+</div>
+
+<!-- Score -->
+<div class="section">
+  <div class="section-title">Score de deal</div>
+  <div class="score-wrap">
+    <div class="score-circle score-neutral">72</div>
+    <div class="score-info">
+      <h2 class="yellow">NEUTRAL</h2>
+      <p style="font-size:0.8rem;color:#94a3b8;">Deal acceptable — surveiller le DSCR et la vacance</p>
+      <div class="score-bars">
+        <div class="bar-row"><span style="width:120px">Cashflow</span><div class="bar-track"><div class="bar-fill" style="width:72%;background:#22c55e"></div></div><span>18/25</span></div>
+        <div class="bar-row"><span style="width:120px">DSCR</span><div class="bar-track"><div class="bar-fill" style="width:70%;background:#eab308"></div></div><span>14/20</span></div>
+        <div class="bar-row"><span style="width:120px">Cap Rate</span><div class="bar-track"><div class="bar-fill" style="width:80%;background:#3b82f6"></div></div><span>16/20</span></div>
+        <div class="bar-row"><span style="width:120px">Stabilité</span><div class="bar-track"><div class="bar-fill" style="width:70%;background:#3b82f6"></div></div><span>14/20</span></div>
+        <div class="bar-row"><span style="width:120px">Données</span><div class="bar-track"><div class="bar-fill" style="width:67%;background:#64748b"></div></div><span>10/15</span></div>
+      </div>
+    </div>
+    <div style="margin-left:auto">
+      <div class="flag flag-warning">⚠ DSCR proche du seuil</div>
+      <div class="flag flag-warning">⚠ Taxes estimées</div>
+      <div class="flag flag-info">ℹ Loyers légèrement sous-marché</div>
+    </div>
+  </div>
+</div>
+
+<!-- Projections -->
+<div class="section">
+  <div class="section-title">Projections 10 ans</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Année</th>
+        <th>Revenu brut</th>
+        <th>NOI</th>
+        <th>Cashflow</th>
+        <th>Cashflow cumulatif</th>
+        <th>Valeur estimée</th>
+        <th>Équité</th>
+      </tr>
+    </thead>
+    <tbody id="projections-body">
+    </tbody>
+  </table>
+</div>
+
+<!-- Sensibilité -->
+<div class="section">
+  <div class="section-title">Analyse de sensibilité</div>
+  <div class="sens-grid" id="sensitivity-grid"></div>
+</div>
+
+<div class="timestamp">Calculé le <span id="computed-at"></span></div>
+
+<script>
+// ── Données fictives représentatives ─────────────────────────────────────────
+
+const projections = [
+  { year:1,  gpi:57720, noi:32860, cashflow: 4104, cum:4104,   value:606000, equity:151200 },
+  { year:2,  gpi:59441, noi:34080, cashflow: 4780, cum:8884,   value:623600, equity:168000 },
+  { year:3,  gpi:61225, noi:35340, cashflow: 5600, cum:14484,  value:641700, equity:185200 },
+  { year:4,  gpi:63062, noi:36660, cashflow: 6460, cum:20944,  value:660600, equity:203200 },
+  { year:5,  gpi:64954, noi:38020, cashflow: 7380, cum:28324,  value:680300, equity:222100 },
+  { year:6,  gpi:66902, noi:39420, cashflow: 8340, cum:36664,  value:700700, equity:241800 },
+  { year:7,  gpi:68909, noi:40880, cashflow: 9400, cum:46064,  value:721700, equity:262800 },
+  { year:8,  gpi:70977, noi:42380, cashflow:10500, cum:56564,  value:743500, equity:284800 },
+  { year:9,  gpi:73106, noi:43940, cashflow:11680, cum:68244,  value:766000, equity:307600 },
+  { year:10, gpi:75299, noi:45560, cashflow:12920, cum:81164,  value:789400, equity:331500 },
+];
+
+const sensitivity = [
+  {
+    label: "Taux d'intérêt",
+    scenarios: [
+      { delta: -0.02, cashflowMonthly: 628, dscr: 1.42 },
+      { delta: -0.01, cashflowMonthly: 485, dscr: 1.30 },
+      { delta:  0.00, cashflowMonthly: 342, dscr: 1.18, base: true },
+      { delta: +0.01, cashflowMonthly: 199, dscr: 1.07 },
+      { delta: +0.02, cashflowMonthly:  56, dscr: 0.95 },
+    ]
+  },
+  {
+    label: "Taux de vacance",
+    scenarios: [
+      { delta: -0.03, cashflowMonthly: 519, dscr: 1.36 },
+      { delta: -0.02, cashflowMonthly: 460, dscr: 1.31 },
+      { delta:  0.00, cashflowMonthly: 342, dscr: 1.18, base: true },
+      { delta: +0.02, cashflowMonthly: 224, dscr: 1.06 },
+      { delta: +0.05, cashflowMonthly:  47, dscr: 0.90 },
+    ]
+  },
+  {
+    label: "Niveau de loyers",
+    scenarios: [
+      { delta: -0.10, cashflowMonthly: -54,  dscr: 0.98 },
+      { delta: -0.05, cashflowMonthly: 144,  dscr: 1.08 },
+      { delta:  0.00, cashflowMonthly: 342,  dscr: 1.18, base: true },
+      { delta: +0.05, cashflowMonthly: 540,  dscr: 1.28 },
+      { delta: +0.10, cashflowMonthly: 738,  dscr: 1.38 },
+    ]
+  },
+  {
+    label: "Entretien",
+    scenarios: [
+      { delta: -0.50, cashflowMonthly: 517,  dscr: 1.31 },
+      { delta: -0.25, cashflowMonthly: 430,  dscr: 1.25 },
+      { delta:  0.00, cashflowMonthly: 342,  dscr: 1.18, base: true },
+      { delta: +0.25, cashflowMonthly: 254,  dscr: 1.12 },
+      { delta: +0.50, cashflowMonthly: 167,  dscr: 1.05 },
+    ]
+  },
+];
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function fmt$(n) { return n.toLocaleString('fr-CA') + ' $'; }
+function fmtPct(n) { return (n >= 0 ? '+' : '') + (n * 100).toFixed(0) + ' %'; }
+
+// Projections
+const tbody = document.getElementById('projections-body');
+for (const p of projections) {
+  const cfColor = p.cashflow >= 0 ? 'green' : 'red';
+  tbody.innerHTML += `
+    <tr>
+      <td>An ${p.year}</td>
+      <td>${fmt$(p.gpi)}</td>
+      <td>${fmt$(p.noi)}</td>
+      <td class="${cfColor}">${p.cashflow >= 0 ? '+' : ''}${fmt$(p.cashflow)}</td>
+      <td>${fmt$(p.cum)}</td>
+      <td>${fmt$(p.value)}</td>
+      <td>${fmt$(p.equity)}</td>
+    </tr>`;
+}
+
+// Sensitivity
+const grid = document.getElementById('sensitivity-grid');
+for (const s of sensitivity) {
+  let rows = '';
+  for (const sc of s.scenarios) {
+    const cfColor = sc.cashflowMonthly < 0 ? 'red' : sc.cashflowMonthly < 200 ? 'yellow' : 'green';
+    const dscrColor = sc.dscr < 1.10 ? 'red' : sc.dscr < 1.20 ? 'yellow' : 'green';
+    rows += `
+      <div class="sens-row ${sc.base ? 'sens-base' : ''}">
+        <span class="sens-delta">${fmtPct(sc.delta)}</span>
+        <span class="sens-cf ${cfColor}">${sc.cashflowMonthly >= 0 ? '+' : ''}${sc.cashflowMonthly} $/mois</span>
+        <span class="sens-dscr ${dscrColor}">DSCR ${sc.dscr.toFixed(2)}</span>
+      </div>`;
+  }
+  grid.innerHTML += `
+    <div class="sens-card">
+      <h3>${s.label}</h3>
+      ${rows}
+    </div>`;
+}
+
+document.getElementById('computed-at').textContent = new Date().toLocaleString('fr-CA');
+</script>
+
+</body>
+</html>
