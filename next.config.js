@@ -9,6 +9,7 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },
+      { protocol: "http", hostname: "localhost" },
     ],
   },
   async headers() {
@@ -31,7 +32,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' blob: data: https:",
               "font-src 'self'",
-              "connect-src 'self' https://*.supabase.co https://api.stripe.com",
+              "connect-src 'self' https://*.supabase.co http://localhost:8000 https://api.stripe.com",
               "frame-src https://js.stripe.com https://hooks.stripe.com",
             ].join("; "),
           },
